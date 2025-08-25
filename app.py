@@ -22,6 +22,10 @@ class HerbalPlantClassifier:
         self.input_shape = input_shape
         self.model = None
         self.class_names = ['daun_jambu_biji', 'daun_sirih', 'daun_sirsak', 'lidah_buaya']
+        
+        # Threshold untuk rejection logic
+        self.confidence_threshold = 0.6  # Minimum confidence untuk menerima prediksi
+        self.uncertainty_threshold = 0.25  # Maximum entropy untuk menolak prediksi ambiguous
 
         self.manfaat_database = {
             'daun_jambu_biji': """Daun jambu biji memiliki berbagai manfaat kesehatan:
@@ -53,6 +57,56 @@ class HerbalPlantClassifier:
             • Memiliki sifat anti-aging untuk kesehatan kulit"""
         }
 
+    def calculate_entropy(self, predictions):
+        """Menghitung entropy untuk mengukur uncertainty"""
+        # Tambahkan epsilon untuk menghindari log(0)
+        epsilon = 1e-8
+        predictions_safe = np.clip(predictions, epsilon, 1.0 - epsilon)
+        entropy = -np.sum(predictions_safe * np.log(predictions_safe))
+        return entropy
+
+    def is_valid_prediction(self, predictions):
+        """
+        Logic untuk menentukan apakah prediksi valid atau tidak
+        Menggunakan beberapa metrik:
+        1. Maximum confidence threshold
+        2. Entropy-based uncertainty
+        3. Distribution balance check
+        """
+        max_confidence = np.max(predictions)
+        entropy = self.calculate_entropy(predictions)
+        
+        # Normalisasi entropy (untuk 4 kelas, max entropy ≈ 1.386)
+        max_entropy = np.log(len(self.class_names))
+        normalized_entropy = entropy / max_entropy
+        
+        # Check 1: Maximum confidence harus di atas threshold
+        confidence_check = max_confidence >= self.confidence_threshold
+        
+        # Check 2: Entropy tidak boleh terlalu tinggi (prediksi terlalu ambiguous)
+        uncertainty_check = normalized_entropy <= self.uncertainty_threshold
+        
+        # Check 3: Gap antara prediksi tertinggi dan kedua tertinggi
+        sorted_preds = np.sort(predictions)[::-1]  # Sort descending
+        confidence_gap = sorted_preds[0] - sorted_preds[1]
+        gap_check = confidence_gap >= 0.2  # Gap minimum 20%
+        
+        # Kombinasi semua check
+        is_valid = confidence_check and uncertainty_check and gap_check
+        
+        return {
+            'is_valid': is_valid,
+            'max_confidence': max_confidence,
+            'entropy': entropy,
+            'normalized_entropy': normalized_entropy,
+            'confidence_gap': confidence_gap,
+            'checks': {
+                'confidence': confidence_check,
+                'uncertainty': uncertainty_check,
+                'gap': gap_check
+            }
+        }
+
     def predict_image(self, image):
         if self.model is None:
             raise ValueError("Model belum dilatih!")
@@ -68,23 +122,65 @@ class HerbalPlantClassifier:
         img_array = np.expand_dims(img_array, axis=0)
 
         predictions = self.model.predict(img_array)
-        predicted_class_index = np.argmax(predictions[0])
-        confidence = predictions[0][predicted_class_index]
+        predictions_flat = predictions[0]
+        
+        # Validasi prediksi menggunakan rejection logic
+        validation_result = self.is_valid_prediction(predictions_flat)
+        
+        predicted_class_index = np.argmax(predictions_flat)
+        confidence = predictions_flat[predicted_class_index]
 
-        predicted_class = self.class_names[predicted_class_index]
-        manfaat = self.manfaat_database[predicted_class]
-
-        result = {
-            'predicted_class': predicted_class,
-            'confidence': confidence,
-            'manfaat': manfaat,
-            'all_predictions': predictions[0]
-        }
+        if validation_result['is_valid']:
+            # Prediksi valid - return hasil normal
+            predicted_class = self.class_names[predicted_class_index]
+            manfaat = self.manfaat_database[predicted_class]
+            
+            result = {
+                'status': 'valid',
+                'predicted_class': predicted_class,
+                'confidence': confidence,
+                'manfaat': manfaat,
+                'all_predictions': predictions_flat,
+                'validation_details': validation_result
+            }
+        else:
+            # Prediksi tidak valid - reject
+            result = {
+                'status': 'rejected',
+                'predicted_class': None,
+                'confidence': confidence,
+                'manfaat': None,
+                'all_predictions': predictions_flat,
+                'validation_details': validation_result,
+                'rejection_reason': self._get_rejection_reason(validation_result)
+            }
 
         return result
 
+    def _get_rejection_reason(self, validation_result):
+        """Generate human-readable rejection reason"""
+        reasons = []
+        
+        if not validation_result['checks']['confidence']:
+            reasons.append(f"Confidence terlalu rendah ({validation_result['max_confidence']:.1%} < {self.confidence_threshold:.1%})")
+        
+        if not validation_result['checks']['uncertainty']:
+            reasons.append(f"Prediksi terlalu ambiguous (entropy: {validation_result['normalized_entropy']:.2f})")
+        
+        if not validation_result['checks']['gap']:
+            reasons.append(f"Gap confidence terlalu kecil ({validation_result['confidence_gap']:.1%})")
+        
+        return " | ".join(reasons)
+
     def load_model(self, filepath):
         self.model = tf.keras.models.load_model(filepath)
+
+    def set_thresholds(self, confidence_threshold=None, uncertainty_threshold=None):
+        """Update threshold values"""
+        if confidence_threshold is not None:
+            self.confidence_threshold = confidence_threshold
+        if uncertainty_threshold is not None:
+            self.uncertainty_threshold = uncertainty_threshold
 
 def inject_custom_css():
     """Inject custom CSS for styling"""
@@ -179,11 +275,28 @@ def inject_custom_css():
             text-align: center;
         }
         
+        .rejected-card {
+            background: linear-gradient(135deg, #FFE8E8 0%, #FFCDD2 100%);
+            padding: 1.5rem;
+            border-radius: 10px;
+            border-left: 4px solid #f44336;
+            margin: 1rem 0;
+            text-align: center;
+        }
+        
         .benefit-card {
             background: #f8f9fa;
             padding: 1rem;
             border-radius: 8px;
             border-left: 3px solid #28a745;
+            margin: 1rem 0;
+        }
+        
+        .threshold-card {
+            background: #fff3cd;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 3px solid #ffc107;
             margin: 1rem 0;
         }
         
@@ -277,6 +390,44 @@ def main():
 def prediction_page():
     st.markdown("<br>", unsafe_allow_html=True)
     
+    # Sidebar for threshold adjustment
+    with st.sidebar:
+        st.markdown("###Pengaturan Threshold")
+        st.markdown("""
+        <div class="threshold-card">
+            <p><strong>Atur sensitivity detection:</strong></p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        confidence_threshold = st.slider(
+            "Minimum Confidence Threshold",
+            min_value=0.3,
+            max_value=0.9,
+            value=0.6,
+            step=0.05,
+            help="Semakin tinggi, semakin ketat dalam menerima prediksi"
+        )
+        
+        uncertainty_threshold = st.slider(
+            "Maximum Uncertainty Threshold", 
+            min_value=0.1,
+            max_value=0.5,
+            value=0.25,
+            step=0.05,
+            help="Semakin rendah, semakin ketat dalam menolak prediksi ambiguous"
+        )
+        
+        # Update thresholds
+        st.session_state.classifier.set_thresholds(
+            confidence_threshold=confidence_threshold,
+            uncertainty_threshold=uncertainty_threshold
+        )
+        
+        st.markdown("---")
+        st.markdown("**Status:**")
+        st.info(f"Min Confidence: {confidence_threshold:.0%}")
+        st.info(f"Max Uncertainty: {uncertainty_threshold:.0%}")
+    
     # Section 1: Upload Model
     with st.container():
         st.markdown("Upload file model yang sudah dilatih (.h5 atau .keras)")
@@ -297,7 +448,7 @@ def prediction_page():
             tmp_file_path = tmp_file.name
 
         try:
-            with st.spinner("📥 Memuat model..."):
+            with st.spinner("Memuat model..."):
                 st.session_state.classifier.load_model(tmp_file_path)
             st.success("✅ Model berhasil dimuat!")
         except Exception as e:
@@ -331,7 +482,7 @@ def prediction_page():
             )
 
         with col2:
-            st.markdown("### 🎯 Hasil Analisis")
+            st.markdown("### Hasil Analisis")
             
             if st.session_state.classifier.model is not None:
                 try:
@@ -339,43 +490,60 @@ def prediction_page():
                         time.sleep(1)  # Simulasi processing time
                         result = st.session_state.classifier.predict_image(image)
                     
-                    # Hasil prediksi utama
-                    predicted_class = result['predicted_class'].replace('_', ' ').title()
-                    confidence = result['confidence']
-                    
-                    st.markdown(f"""
-                    <div class="result-card">
-                        <h2 style="color: #2E7D32; margin: 0 0 0.5rem 0;">🌿 {predicted_class}</h2>
-                        <p style="color: #2E7D32; margin: 0; font-size: 1.3rem;">
-                            <strong>Tingkat Kepercayaan: {confidence:.1%}</strong>
-                        </p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-                    # Progress bar
-                    st.progress(float(confidence), text=f"Confidence: {confidence:.1%}")
+                    if result['status'] == 'valid':
+                        # Hasil prediksi valid
+                        predicted_class = result['predicted_class'].replace('_', ' ').title()
+                        confidence = result['confidence']
+                        
+                        st.markdown(f"""
+                        <div class="result-card">
+                            <h2 style="color: #2E7D32; margin: 0 0 0.5rem 0;">🌿 {predicted_class}</h2>
+                            <p style="color: #2E7D32; margin: 0; font-size: 1.3rem;">
+                                <strong>Tingkat Kepercayaan: {confidence:.1%}</strong>
+                            </p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # Progress bar
+                        st.progress(float(confidence), text=f"Confidence: {confidence:.1%}")
+                        
+                    else:
+                        # Hasil prediksi ditolak
+                        st.markdown(f"""
+                        <div class="rejected-card">
+                            <h2 style="color: #d32f2f; margin: 0 0 0.5rem 0;">Gambar Tidak Dikenali</h2>
+                            <p style="color: #d32f2f; margin: 0; font-size: 1.1rem;">
+                                <strong>Gambar ini bukan salah satu dari 4 tanaman herbal yang dapat diidentifikasi</strong>
+                            </p>
+                            <hr style="margin: 1rem 0; border-color: #d32f2f;">
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        st.warning("⚠️ Silakan upload gambar daun sirsak, daun sirih, daun jambu biji, atau lidah buaya yang lebih jelas.")
                     
                 except Exception as e:
-                    st.error(f"❌ Error dalam prediksi: {e}")
+                    st.error(f"Error dalam prediksi: {e}")
                     return
             else:
                 st.warning("⚠️ Model belum dimuat. Upload model terlebih dahulu.")
                 return
 
-        # Section 3: Manfaat (full width)
-        if uploaded_image is not None and st.session_state.classifier.model is not None:
+        # Section 3: Manfaat (hanya tampil untuk prediksi valid)
+        if uploaded_image is not None and st.session_state.classifier.model is not None and result['status'] == 'valid':
             st.divider()
             
-            st.markdown("## 💊 Manfaat Kesehatan")
+            predicted_class = result['predicted_class'].replace('_', ' ').title()
+            st.markdown("## Manfaat Kesehatan")
             st.markdown(f"""
             <div class="benefit-card">
                 <h4 style="color: #2E7D32; margin-top: 0;">Manfaat {predicted_class}:</h4>
                 {result['manfaat'].replace('•', '<br>• ')}
             </div>
             """, unsafe_allow_html=True)
-            
-            # Detail prediksi semua kelas
-            with st.expander("📊 Detail Prediksi Semua Kelas", expanded=False):
+        
+        # Section 4: Detail Prediksi (tampil untuk semua hasil)
+        if uploaded_image is not None and st.session_state.classifier.model is not None:
+            with st.expander("Detail Prediksi Semua Kelas", expanded=False):
                 st.markdown("**Probabilitas untuk setiap kelas:**")
                 
                 for i, class_name in enumerate(st.session_state.classifier.class_names):
@@ -401,41 +569,41 @@ def prediction_page():
                         st.markdown(f"<span style='color: {color}; font-weight: bold; font-size: 1.1rem;'>{probability:.1%}</span>", 
                                   unsafe_allow_html=True)
 
-    # Section 4: Info Aplikasi
+    # Section 5: Info Aplikasi
     st.divider()
-    with st.expander("ℹ️ Tentang Aplikasi", expanded=False):
+    with st.expander("Tentang Aplikasi", expanded=False):
         st.markdown("""
-        ## 🌿 Aplikasi Klasifikasi Tanaman Herbal Indonesia
+        ## 🌿 Aplikasi Klasifikasi Tanaman Herbal
         
         Aplikasi ini menggunakan teknologi **Deep Learning** dengan arsitektur **Convolutional Neural Network (CNN)** 
         untuk mengidentifikasi 4 jenis tanaman herbal Indonesia yang umum digunakan.
         
-        ### 🌱 Tanaman yang Dapat Diidentifikasi:
+        Tanaman yang Dapat Diidentifikasi:
         
         | Tanaman | Nama Ilmiah | Kegunaan Utama |
         |---------|-------------|----------------|
-        |  **Daun Jambu Biji** | *Psidium guajava* | Mengontrol diabetes, gangguan pencernaan |
-        |  **Daun Sirih** | *Piper betle* | Kesehatan mulut, antiseptik alami |
-        |  **Daun Sirsak** | *Annona muricata* | Antioksidan, anti-inflamasi |
-        |  **Lidah Buaya** | *Aloe vera* | Perawatan kulit, gangguan pencernaan |
+        |**Daun Jambu Biji** | *Psidium guajava* | Mengontrol diabetes, gangguan pencernaan |
+        |**Daun Sirih** | *Piper betle* | Kesehatan mulut, antiseptik alami |
+        |**Daun Sirsak** | *Annona muricata* | Antioksidan, anti-inflamasi |
+        |**Lidah Buaya** | *Aloe vera* | Perawatan kulit, gangguan pencernaan |
         
-        ### 📋 Petunjuk Penggunaan:
-        1. **📁 Download Model**: Unduh file model dari [GitHub Repository](https://github.com/fathanbimo/Tanaman-Herbal)
-        2. **📤 Upload Model**: Upload file model (.h5 atau .keras) ke aplikasi
-        3. **🖼️ Upload Gambar**: Pilih gambar tanaman herbal yang jelas dan berkualitas baik
-        4. **📊 Lihat Hasil**: Analisis otomatis akan menampilkan jenis tanaman dan manfaatnya
+        Petunjuk Penggunaan:
+        1. **Download Model**: Unduh file model dari [GitHub Repository](https://github.com/fathanbimo/Tanaman-Herbal)
+        2. **Upload Model**: Upload file model (.h5 atau .keras) ke aplikasi
+        3. **Upload Gambar**: Pilih gambar tanaman herbal yang jelas dan berkualitas baik
+        4. **Lihat Hasil**: Analisis otomatis akan menampilkan hasil atau menolak jika tidak sesuai
         
-        ### 💡 Tips untuk Hasil Terbaik:
+        Tips untuk Hasil Terbaik:
         - Gunakan gambar dengan pencahayaan yang baik
         - Pastikan daun terlihat jelas dan tidak buram
         - Hindari gambar dengan background yang terlalu ramai
         - Resolusi gambar minimal 224x224 pixel
+        - Upload gambar yang benar-benar merupakan salah satu dari 4 tanaman target
         
         ### ⚠️ Disclaimer:
         > **PENTING**: Aplikasi ini dibuat untuk tujuan **edukasi dan penelitian**. 
         > Hasil prediksi tidak dapat menggantikan konsultasi dengan ahli herbal atau tenaga medis profesional.
         > Selalu konsultasikan penggunaan tanaman herbal dengan ahli yang kompeten.
-        
         """)
 
 if __name__ == "__main__":
