@@ -28,35 +28,105 @@ class HerbalPlantClassifier:
         self.uncertainty_threshold = 0.25  # Maximum entropy untuk menolak prediksi ambiguous
 
         self.manfaat_database = {
-            'daun_jambu_biji': """Daun jambu biji memiliki berbagai manfaat kesehatan:
-            • Mengendalikan diabetes dengan menurunkan kadar gula darah
-            • Membantu mengatasi diare dan gangguan pencernaan
-            • Mengandung antioksidan tinggi untuk meningkatkan imunitas
-            • Memiliki sifat anti-inflamasi dan antibakteri
-            • Membantu menurunkan kolesterol""",
-            
-            'daun_sirih': """Daun sirih memiliki berbagai manfaat kesehatan:
-            • Menjaga kesehatan mulut dan mencegah bau mulut
-            • Memiliki sifat antiseptik dan antibakteri alami
-            • Membantu penyembuhan luka dan peradangan
-            • Mengatasi keputihan pada wanita
-            • Membantu mengobati batuk dan masalah pernapasan""",
-            
-            'daun_sirsak': """Daun sirsak memiliki berbagai manfaat kesehatan:
-            • Sebagai antioksidan kuat untuk melawan radikal bebas
-            • Memiliki sifat anti-inflamasi dan anti-kanker
-            • Membantu menurunkan tekanan darah tinggi
-            • Meningkatkan sistem kekebalan tubuh
-            • Membantu mengatasi insomnia dan stres""",
-            
-            'lidah_buaya': """Lidah buaya memiliki berbagai manfaat kesehatan:
-            • Menyembuhkan luka bakar dan iritasi kulit
-            • Melembapkan kulit kering dan mengatasi eksim
-            • Membantu pencernaan dan mengatasi maag
-            • Mengandung vitamin dan mineral penting
-            • Memiliki sifat anti-aging untuk kesehatan kulit"""
-        }
+        'daun_jambu_biji': """Daun jambu biji memiliki berbagai manfaat kesehatan:
+        • Mengendalikan diabetes dengan menurunkan kadar gula darah
+        • Membantu mengatasi diare dan gangguan pencernaan
+        • Mengandung antioksidan tinggi untuk meningkatkan imunitas
+        • Memiliki sifat anti-inflamasi dan antibakteri
+        • Membantu menurunkan kolesterol
 
+       ## Cara Penggunaan:
+        1. Rebusan: 
+           - Rebus 7-10 lembar daun jambu biji dalam 2 gelas air
+           - Didihkan hingga tersisa 1 gelas
+           - Minum 2-3 kali sehari
+        
+        2. Seduhan:
+           - Seduh 3-5 lembar daun kering dengan air panas
+           - Tunggu hingga hangat dan saring
+           - Minum 1-2 kali sehari
+        
+        3. Kunyah langsung:
+           - Cuci bersih 1-2 lembar daun muda
+           - Kunyah perlahan dan telan airnya
+        
+        ⚠️ Peringatan: Konsultasikan dengan dokter sebelum mengonsumsi.""",
+        
+        'daun_sirih': """Daun sirih memiliki berbagai manfaat kesehatan:
+        • Menjaga kesehatan mulut dan mencegah bau mulut
+        • Memiliki sifat antiseptik dan antibakteri alami
+        • Membantu penyembuhan luka dan peradangan
+        • Mengatasi keputihan pada wanita
+        • Membantu mengobati batuk dan masalah pernapasan
+
+        ## Cara Penggunaan:
+        1. Obat kumur alami:
+           - Rebus 5-7 lembar daun sirih dalam 2 gelas air
+           - Tunggu hingga hangat dan berkumur 2-3 kali sehari
+        
+        2. Kompres luka:
+           - Rebus 3-5 lembar daun sirih
+           - Gunakan air rebusan untuk mengompres area luka
+           - Lakukan 2-3 kali sehari
+        
+        3. Untuk keputihan:
+           - Rebus 7-10 lembar daun sirih dalam 3 gelas air
+           - Gunakan air rebusan untuk cebok setelah BAK
+        
+        ⚠️ Peringatan: Hindari penggunaan berlebihan.""",
+        
+        'daun_sirsak': """Daun sirsak memiliki berbagai manfaat kesehatan:
+        • Sebagai antioksidan kuat untuk melawan radikal bebas
+        • Memiliki sifat anti-inflamasi dan anti-kanker
+        • Membantu menurunkan tekanan darah tinggi
+        • Meningkatkan sistem kekebalan tubuh
+        • Membantu mengatasi insomnia dan stres
+
+       ## Cara Penggunaan:
+        1. Teh daun sirsak:
+           - Rebus 3-5 lembar daun sirsak kering dalam 2 gelas air
+           - Saring dan minum 2 kali sehari
+           - Bisa ditambah madu atau gula aren
+        
+        2. Seduhan:
+           - Seduh 2-3 lembar daun kering dengan air panas
+           - Tunggu 10-15 menit dan saring
+           - Minum 1 kali sehari
+        
+        3. Untuk kompres:
+           - Tumbuk daun segar hingga halus
+           - Tempelkan pada area yang sakit
+        
+        ⚠️ Peringatan: Tidak dianjurkan untuk ibu hamil.""",
+        
+        'lidah_buaya': """Lidah buaya memiliki berbagai manfaat kesehatan:
+        • Menyembuhkan luka bakar dan iritasi kulit
+        • Melembapkan kulit kering dan mengatasi eksim
+        • Membantu pencernaan dan mengatasi maag
+        • Mengandung vitamin dan mineral penting
+        • Memiliki sifat anti-aging untuk kesehatan kulit
+
+       ## Cara Penggunaan:
+        1. Penggunaan topikal:
+           - Kupas kulit lidah buaya
+           - Ambil gel bening di dalamnya
+           - Oleskan langsung pada kulit
+           - Biarkan 15-20 menit lalu bilas
+        
+        2. Konsumsi oral:
+           - Kupas dan ambil gel lidah buaya
+           - Potong kecil dan rendam dalam air
+           - Bisa dicampur dengan madu/jus
+           - Konsumsi 2-3 sendok makan per hari
+        
+        3. Masker rambut:
+           - Haluskan gel lidah buaya
+           - Aplikasikan ke rambut dan kulit kepala
+           - Diamkan 30 menit lalu bilas
+        
+        ⚠️ Peringatan: Lakukan patch test sebelum penggunaan."""
+    }
+        
     def calculate_entropy(self, predictions):
         """Menghitung entropy untuk mengukur uncertainty"""
         # Tambahkan epsilon untuk menghindari log(0)
@@ -339,7 +409,6 @@ def create_navbar():
         </div>
         <div class="navbar-nav">
             <span class="nav-item active">🏠 Home</span>
-            <a href="https://github.com/fathanbimo/Tanaman-Herbal" target="_blank" class="nav-item">📁 GitHub</a>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -357,26 +426,24 @@ def main():
     inject_custom_css()
     create_navbar()
 
+    # Inisialisasi classifier dan muat model
+    if 'classifier' not in st.session_state:
+        st.session_state.classifier = HerbalPlantClassifier()
+        # Load model secara otomatis 
+        try:
+            model_path = "improved_herbal_classifier (1).h5"  # Path ke model
+            st.session_state.classifier.load_model(model_path)
+            st.success("✅ Model berhasil dimuat!")
+        except Exception as e:
+            st.error(f"❌ Error loading model: {e}")
+            return
+
     # Header dengan styling yang lebih baik
     st.markdown("""
     <div style="text-align: center; padding: 2rem 0 1rem 0;">
         <h1 style="color: #2E7D32; margin-bottom: 0.5rem; font-size: 2.5rem;">
             🌿 Klasifikasi Tanaman Herbal 
         </h1>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Info card
-    st.markdown("""
-    <div class="info-card">
-        <p style="margin: 0; color: #2E7D32; text-align: center;">
-            📋 <strong>Untuk menggunakan aplikasi ini:</strong><br>
-            Silakan download model terlebih dahulu di 
-            <a href="https://github.com/fathanbimo/Tanaman-Herbal" target="_blank" 
-               style="color: #2E7D32; text-decoration: none; font-weight: bold;">
-               🔗 GitHub Repository kami
-            </a>
-        </p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -427,35 +494,41 @@ def prediction_page():
         st.markdown("**Status:**")
         st.info(f"Min Confidence: {confidence_threshold:.0%}")
         st.info(f"Max Uncertainty: {uncertainty_threshold:.0%}")
-    
-    # Section 1: Upload Model
-    with st.container():
-        st.markdown("Upload file model yang sudah dilatih (.h5 atau .keras)")
-        
-        model_file = st.file_uploader(
-            "Pilih file model:",
-            type=['h5', 'keras'],
-            key="model_upload",
-            help="Upload file model TensorFlow/Keras yang sudah dilatih"
-        )
-    
-    if model_file is not None:
-        # Simpan model ke temporary file
-        suffix = os.path.splitext(model_file.name)[1]
-        
-        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
-            tmp_file.write(model_file.read())
-            tmp_file_path = tmp_file.name
 
-        try:
-            with st.spinner("Memuat model..."):
-                st.session_state.classifier.load_model(tmp_file_path)
-            st.success("✅ Model berhasil dimuat!")
-        except Exception as e:
-            st.error(f"❌ Error loading model: {e}")
-            return
+        st.divider()
+    with st.expander("Tentang Aplikasi", expanded=False):
+        st.markdown("""
+        ## 🌿 Aplikasi Klasifikasi Tanaman Herbal
+        
+        Aplikasi ini menggunakan teknologi **Deep Learning** dengan arsitektur **Convolutional Neural Network (CNN)** 
+        untuk mengidentifikasi 4 jenis tanaman herbal Indonesia yang umum digunakan.
+        
+        Tanaman yang Dapat Diidentifikasi:
+        
+        | Tanaman | Nama Ilmiah | Kegunaan Utama |
+        |---------|-------------|----------------|
+        |**Daun Jambu Biji** | *Psidium guajava* | Mengontrol diabetes, gangguan pencernaan |
+        |**Daun Sirih** | *Piper betle* | Kesehatan mulut, antiseptik alami |
+        |**Daun Sirsak** | *Annona muricata* | Antioksidan, anti-inflamasi |
+        |**Lidah Buaya** | *Aloe vera* | Perawatan kulit, gangguan pencernaan |
+        
+        Petunjuk Penggunaan:
+        1. **Upload Gambar**: Pilih gambar tanaman herbal yang jelas dan berkualitas baik
+        2. **Lihat Hasil**: Analisis otomatis akan menampilkan hasil atau menolak jika tidak sesuai
+        
+        Tips untuk Hasil Terbaik:
+        - Gunakan gambar dengan pencahayaan yang baik
+        - Pastikan daun terlihat jelas dan tidak buram
+        - Hindari gambar dengan background yang terlalu ramai
+        - Resolusi gambar minimal 224x224 pixel
+        - Upload gambar yang benar-benar merupakan salah satu dari 4 tanaman target
+        
+        ### ⚠️ Disclaimer:
+        > **PENTING**: Aplikasi ini dibuat untuk tujuan **edukasi dan penelitian**. 
+        > Hasil prediksi tidak dapat menggantikan konsultasi dengan ahli herbal atau tenaga medis profesional.
+        > Selalu konsultasikan penggunaan tanaman herbal dengan ahli yang kompeten.
+        """)
 
-    st.divider()
 
     # Section 2: Upload Image
     with st.container():
@@ -463,9 +536,9 @@ def prediction_page():
         
         uploaded_image = st.file_uploader(
             "Pilih gambar:",
-            type=['jpg', 'jpeg', 'png', 'bmp'],
+            type=['jpg', 'jpeg', 'png'],
             key="image_upload",
-            help="Format yang didukung: JPG, JPEG, PNG, BMP"
+            help="Format yang didukung: JPG, JPEG, PNG"
         )
 
     if uploaded_image is not None:
@@ -568,43 +641,5 @@ def prediction_page():
                     with col_b:
                         st.markdown(f"<span style='color: {color}; font-weight: bold; font-size: 1.1rem;'>{probability:.1%}</span>", 
                                   unsafe_allow_html=True)
-
-    # Section 5: Info Aplikasi
-    st.divider()
-    with st.expander("Tentang Aplikasi", expanded=False):
-        st.markdown("""
-        ## 🌿 Aplikasi Klasifikasi Tanaman Herbal
-        
-        Aplikasi ini menggunakan teknologi **Deep Learning** dengan arsitektur **Convolutional Neural Network (CNN)** 
-        untuk mengidentifikasi 4 jenis tanaman herbal Indonesia yang umum digunakan.
-        
-        Tanaman yang Dapat Diidentifikasi:
-        
-        | Tanaman | Nama Ilmiah | Kegunaan Utama |
-        |---------|-------------|----------------|
-        |**Daun Jambu Biji** | *Psidium guajava* | Mengontrol diabetes, gangguan pencernaan |
-        |**Daun Sirih** | *Piper betle* | Kesehatan mulut, antiseptik alami |
-        |**Daun Sirsak** | *Annona muricata* | Antioksidan, anti-inflamasi |
-        |**Lidah Buaya** | *Aloe vera* | Perawatan kulit, gangguan pencernaan |
-        
-        Petunjuk Penggunaan:
-        1. **Download Model**: Unduh file model dari [GitHub Repository](https://github.com/fathanbimo/Tanaman-Herbal)
-        2. **Upload Model**: Upload file model (.h5 atau .keras) ke aplikasi
-        3. **Upload Gambar**: Pilih gambar tanaman herbal yang jelas dan berkualitas baik
-        4. **Lihat Hasil**: Analisis otomatis akan menampilkan hasil atau menolak jika tidak sesuai
-        
-        Tips untuk Hasil Terbaik:
-        - Gunakan gambar dengan pencahayaan yang baik
-        - Pastikan daun terlihat jelas dan tidak buram
-        - Hindari gambar dengan background yang terlalu ramai
-        - Resolusi gambar minimal 224x224 pixel
-        - Upload gambar yang benar-benar merupakan salah satu dari 4 tanaman target
-        
-        ### ⚠️ Disclaimer:
-        > **PENTING**: Aplikasi ini dibuat untuk tujuan **edukasi dan penelitian**. 
-        > Hasil prediksi tidak dapat menggantikan konsultasi dengan ahli herbal atau tenaga medis profesional.
-        > Selalu konsultasikan penggunaan tanaman herbal dengan ahli yang kompeten.
-        """)
-
 if __name__ == "__main__":
     main()
