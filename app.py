@@ -496,11 +496,11 @@ def prediction_page():
         st.info(f"Max Uncertainty: {uncertainty_threshold:.0%}")
 
         st.divider()
-    with st.expander("Tentang Aplikasi", expanded=False):
+    with st.expander("Tentang Website", expanded=False):
         st.markdown("""
-        ## 🌿 Aplikasi Klasifikasi Tanaman Herbal
+        ## 🌿 Website Klasifikasi Tanaman Herbal
         
-        Aplikasi ini menggunakan teknologi **Deep Learning** dengan arsitektur **Convolutional Neural Network (CNN)** 
+        Website ini menggunakan teknologi **Deep Learning** dengan arsitektur **Convolutional Neural Network (CNN)** 
         untuk mengidentifikasi 4 jenis tanaman herbal Indonesia yang umum digunakan.
         
         Tanaman yang Dapat Diidentifikasi:
@@ -524,7 +524,7 @@ def prediction_page():
         - Upload gambar yang benar-benar merupakan salah satu dari 4 tanaman target
         
         ### ⚠️ Disclaimer:
-        > **PENTING**: Aplikasi ini dibuat untuk tujuan **edukasi dan penelitian**. 
+        > **PENTING**: Website ini dibuat untuk tujuan **edukasi dan penelitian**. 
         > Hasil prediksi tidak dapat menggantikan konsultasi dengan ahli herbal atau tenaga medis profesional.
         > Selalu konsultasikan penggunaan tanaman herbal dengan ahli yang kompeten.
         """)
